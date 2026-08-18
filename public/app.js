@@ -312,12 +312,19 @@ function renderDone(){
 }
 function submitDiary(){
   var payload=buildPayload();
-  var btn=document.getElementById('submit');btn.disabled=true;btn.textContent='Submitting…';
+  var btn=document.getElementById('submit');btn.disabled=true;btn.textContent='Saving…';
+  var embedded=(window.self!==window.top); /* true when running inside a survey iframe */
+  if(embedded){
+    try{ window.parent.postMessage({type:'travel-diary',payload:payload},'*'); }catch(e){}
+    thankYou(true); return;
+  }
   fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    .then(function(r){return r.json();}).then(function(res){
-      stageBox.innerHTML='<div class="card" style="text-align:center;padding:44px 22px"><div class="done-hero"><div class="big" style="color:var(--signal)">✦</div></div><h2 style="margin:10px 0 4px">Thank you!</h2><p class="hint" style="margin:0">Your travel diary has been saved.</p></div>';
-      document.getElementById('eyebrow').textContent='Travel Diary · submitted';
-    }).catch(function(){btn.disabled=false;btn.textContent='Submit diary';alert('Could not save — is the server running?');});
+    .then(function(r){return r.json();}).then(function(){thankYou(false);})
+    .catch(function(){btn.disabled=false;btn.textContent='Submit diary';alert('Could not save — is the server running?');});
+}
+function thankYou(embedded){
+  stageBox.innerHTML='<div class="card" style="text-align:center;padding:44px 22px"><div class="done-hero"><div class="big" style="color:var(--signal)">✦</div></div><h2 style="margin:10px 0 4px">Thank you!</h2><p class="hint" style="margin:0">'+(embedded?'Your travel diary has been recorded. Please click <b>Next</b> below to continue the survey.':'Your travel diary has been saved.')+'</p></div>';
+  document.getElementById('eyebrow').textContent='Travel Diary · submitted';
 }
 function buildPayload(){
   var out={occupation:S.occ,home:S.home,trips:{}};
